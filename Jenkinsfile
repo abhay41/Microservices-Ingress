@@ -4,29 +4,31 @@ pipeline {
     environment {
         DOCKER_HUB_REPO = 'kastrov/techsolutions-app'
         K8S_CLUSTER_NAME = 'kastro-cluster'
-        AWS_REGION = 'us-east-1'
+        AWS_REGION = 'ap-south-1'
         NAMESPACE = 'default'
         APP_NAME = 'techsolutions'
+        EXTERNAL_IMAGE = 'someuser/techsolutions-app:latest'
     }
 
     stages {
         stage('Checkout') {
             steps {
                 echo 'Checking out source code...'
-                git 'https://github.com/KastroVKiran/microservices-ingress.git'
+                git 'https://github.com/abhay41/Microservices-Ingress.git'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Pull and Tag Docker Image') {
             steps {
-                echo 'Building Docker image...'
+                echo 'Pulling Docker image from external DockerHub...'
                 script {
                     def buildNumber = env.BUILD_NUMBER
                     def imageTag = "${DOCKER_HUB_REPO}:${buildNumber}"
                     def latestTag = "${DOCKER_HUB_REPO}:latest"
 
-                    sh "docker build -t ${imageTag} ."
-                    sh "docker tag ${imageTag} ${latestTag}"
+                    sh "docker pull ${EXTERNAL_IMAGE}"
+                    sh "docker tag ${EXTERNAL_IMAGE} ${imageTag}"
+                    sh "docker tag ${EXTERNAL_IMAGE} ${latestTag}"
 
                     env.IMAGE_TAG = buildNumber
                 }
