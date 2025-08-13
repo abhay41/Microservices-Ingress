@@ -39,7 +39,7 @@ pipeline {
             steps {
                 echo 'Pushing Docker image to DockerHub...'
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
                         sh "echo \${DOCKER_PASSWORD} | docker login -u \${DOCKER_USERNAME} --password-stdin"
                         sh "docker push ${DOCKER_HUB_REPO}:${env.IMAGE_TAG}"
                         sh "docker push ${DOCKER_HUB_REPO}:latest"
@@ -52,7 +52,7 @@ pipeline {
             steps {
                 echo 'Configuring AWS CLI and kubectl...'
                 script {
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-cred']]) {
                         sh "aws configure set region ${AWS_REGION}"
                         sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${K8S_CLUSTER_NAME}"
                         sh "kubectl config current-context"
@@ -66,7 +66,7 @@ pipeline {
             steps {
                 echo 'Deploying application to Kubernetes...'
                 script {
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-cred']]) {
                         sh "sed -i 's|kastrov/techsolutions-app:latest|kastrov/techsolutions-app:${env.IMAGE_TAG}|g' k8s/deployment.yaml"
                         sh "kubectl apply -f k8s/deployment.yaml"
                         sh "kubectl rollout status deployment/${APP_NAME}-deployment --timeout=300s"
@@ -81,7 +81,7 @@ pipeline {
             steps {
                 echo 'Deploying Ingress resource...'
                 script {
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-cred']]) {
                         sh "kubectl apply -f k8s/ingress.yaml"
                         sleep(10)
                         sh "kubectl get ingress ${APP_NAME}-ingress"
@@ -95,7 +95,7 @@ pipeline {
             steps {
                 echo 'Getting Ingress URL...'
                 script {
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-cred']]) {
                         timeout(time: 10, unit: 'MINUTES') {
                             waitUntil {
                                 script {
