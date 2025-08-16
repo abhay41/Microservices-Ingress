@@ -2,9 +2,9 @@
 
  								**Deployment of Microservices Application using Ingress Controller**
 
- 														   *by*
+ 														 
 
-=================== 										 			**Kastro Kiran V**
+=================== 										 			
 Step 1: Basic Setup
 ===================
 1.1. Push the code from Local to Remote
@@ -496,3 +496,4 @@ TO GET ARGO CD PASSWORD:
 ------------------------------------------
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 ----> Copy the password and provide in argo cd console ----> You will see the argo cd console ----> Follow as explained in the video
+
