@@ -2,33 +2,31 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_REPO = 'kastrov/techsolutions-app'
-        K8S_CLUSTER_NAME = 'kastro-cluster'
+        DOCKER_HUB_REPO = 'abhay41/techsolutions'
+        K8S_CLUSTER_NAME = 'abhay-cluster'
         AWS_REGION = 'ap-south-1'
         NAMESPACE = 'default'
         APP_NAME = 'techsolutions'
-        EXTERNAL_IMAGE = 'someuser/techsolutions-app:latest'
     }
 
     stages {
         stage('Checkout') {
             steps {
                 echo 'Checking out source code...'
-                git 'https://github.com/abhay41/Microservices-Ingress.git'
+                git 'https://github.com/KastroVKiran/microservices-ingress.git'
             }
         }
 
-        stage('Pull and Tag Docker Image') {
+        stage('Build Docker Image') {
             steps {
-                echo 'Pulling Docker image from external DockerHub...'
+                echo 'Building Docker image...'
                 script {
                     def buildNumber = env.BUILD_NUMBER
                     def imageTag = "${DOCKER_HUB_REPO}:${buildNumber}"
                     def latestTag = "${DOCKER_HUB_REPO}:latest"
 
-                    sh "docker pull ${EXTERNAL_IMAGE}"
-                    sh "docker tag ${EXTERNAL_IMAGE} ${imageTag}"
-                    sh "docker tag ${EXTERNAL_IMAGE} ${latestTag}"
+                    sh "docker build -t ${imageTag} ."
+                    sh "docker tag ${imageTag} ${latestTag}"
 
                     env.IMAGE_TAG = buildNumber
                 }
@@ -52,7 +50,7 @@ pipeline {
             steps {
                 echo 'Configuring AWS CLI and kubectl...'
                 script {
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-cred']]) {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
                         sh "aws configure set region ${AWS_REGION}"
                         sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${K8S_CLUSTER_NAME}"
                         sh "kubectl config current-context"
@@ -66,7 +64,7 @@ pipeline {
             steps {
                 echo 'Deploying application to Kubernetes...'
                 script {
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-cred']]) {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
                         sh "sed -i 's|kastrov/techsolutions-app:latest|kastrov/techsolutions-app:${env.IMAGE_TAG}|g' k8s/deployment.yaml"
                         sh "kubectl apply -f k8s/deployment.yaml"
                         sh "kubectl rollout status deployment/${APP_NAME}-deployment --timeout=300s"
@@ -81,7 +79,7 @@ pipeline {
             steps {
                 echo 'Deploying Ingress resource...'
                 script {
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-cred']]) {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
                         sh "kubectl apply -f k8s/ingress.yaml"
                         sleep(10)
                         sh "kubectl get ingress ${APP_NAME}-ingress"
@@ -95,7 +93,7 @@ pipeline {
             steps {
                 echo 'Getting Ingress URL...'
                 script {
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-cred']]) {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
                         timeout(time: 10, unit: 'MINUTES') {
                             waitUntil {
                                 script {
